@@ -6,3 +6,4 @@ pypdfium2
 Pillow
 camelot-py
 opencv-python-headless
+img2table

@@ -46,6 +46,14 @@ try:
 except Exception:
     HAS_CAMELOT = False
 
+# try to import img2table (optional)
+try:
+    from img2table.document import Image as Img2TableImage
+    from img2table.ocr import TesseractOCR
+    HAS_IMG2TABLE = True
+except Exception:
+    HAS_IMG2TABLE = False
+
 # -------------------------
 INPUT_DIR_DEFAULT = "input"
 OUT_DIR = "output"
@@ -351,6 +359,55 @@ def extract_tables_with_camelot(pdf_path: str) -> list[pd.DataFrame]:
     return dfs
 
 
+def is_page_image_based(page) -> bool:
+    """
+    Check if a pdfplumber page is image-based (has little to no extractable text).
+    """
+    try:
+        text = page.extract_text()
+        # If page has very little text, it's likely image-based
+        return not text or len(text.strip()) < 50
+    except Exception:
+        return True
+
+
+def extract_tables_with_ocr(pdf_path: str) -> list[pd.DataFrame]:
+    """
+    Extract tables from image-based PDFs using OCR (img2table).
+    """
+    if not HAS_IMG2TABLE:
+        logger.warning("img2table not available, skipping OCR table extraction")
+        return []
+    
+    tables: list[pd.DataFrame] = []
+    try:
+        # Initialize OCR
+        ocr = TesseractOCR(lang="eng")
+        
+        # Load PDF as image document
+        doc = Img2TableImage(src=pdf_path, detect_rotation=False)
+        
+        # Extract tables
+        extracted_tables = doc.extract_tables(ocr=ocr, implicit_rows=True, borderless_tables=True)
+        
+        # Convert to DataFrames
+        for page_num, page_tables in extracted_tables.items():
+            for table in page_tables:
+                try:
+                    df = table.df
+                    df.attrs["page"] = page_num + 1  # 1-indexed
+                    tables.append(df)
+                except Exception as e:
+                    logger.error(f"[OCR table] failed to convert table on page {page_num + 1}: {e}")
+                    continue
+        
+        logger.info(f"[OCR] extracted {len(tables)} tables")
+    except Exception as e:
+        logger.error(f"[OCR table extraction] failed for {pdf_path}: {e}")
+    
+    return tables
+
+
 # ==============================
 #  OUTPUT DIRECTORY
 # ==============================
@@ -414,26 +471,50 @@ def run_for_pdf(pdf_path: str, ocr_if_empty: bool = True, try_camelot: bool = Tr
     run_dir, safe_base, timestamp = prepare_run_output_dir(pdf_path)
     logger.info(f"Output directory: {run_dir}")
 
-    # --- TEXT ---
+    # --- DETECT IMAGE-BASED PAGES ---
+    image_based_pages = []
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            for i, page in enumerate(pdf.pages, start=1):
+                if is_page_image_based(page):
+                    image_based_pages.append(i)
+        
+        if image_based_pages:
+            logger.info(f"Detected image-based pages: {image_based_pages}")
+    except Exception as e:
+        logger.error(f"Failed to detect image-based pages: {e}")
+
+    # --- TEXT EXTRACTION ---
     text = extract_text_with_pdfplumber(pdf_path)
     logger.info(f"pdfplumber extracted {len(text)} chars")
 
-    # --- TABLES ---
-    tables = extract_tables_with_pdfplumber(pdf_path)
-    logger.info(f"pdfplumber found {len(tables)} tables")
+    # OCR fallback for text if needed
+    if ocr_if_empty and (not text or len(text.strip()) < 50 or image_based_pages):
+        logger.warning("Running OCR for text extraction...")
+        ocr_text = ocr_pdf_pages_with_pypdfium2(pdf_path)
+        if ocr_text:
+            text = ocr_text
+            logger.info(f"OCR extracted {len(text)} chars")
 
-    if try_camelot and HAS_CAMELOT:
+    # --- TABLE EXTRACTION ---
+    tables = []
+    
+    # Try pdfplumber for text-based pages
+    pdfplumber_tables = extract_tables_with_pdfplumber(pdf_path)
+    logger.info(f"pdfplumber found {len(pdfplumber_tables)} tables")
+    tables.extend(pdfplumber_tables)
+
+    # Try camelot for text-based pages (only if not all pages are image-based)
+    if try_camelot and HAS_CAMELOT and len(image_based_pages) < 10:  # Skip camelot if too many image pages
         camelot_tables = extract_tables_with_camelot(pdf_path)
         logger.info(f"camelot found {len(camelot_tables)} tables")
         tables.extend(camelot_tables)
 
-    # OCR fallback for text
-    if ocr_if_empty and (not text or len(text.strip()) < 50):
-        logger.warning("Text is short/empty, running OCR fallback...")
-        ocr_text = ocr_pdf_pages_with_pypdfium2(pdf_path)
-        if ocr_text and (not text or len(text.strip()) < 50):
-            text = ocr_text
-            logger.info(f"OCR extracted {len(text)} chars")
+    # Use OCR table extraction if we have image-based pages
+    if image_based_pages and HAS_IMG2TABLE:
+        logger.info("Running OCR table extraction for image-based pages...")
+        ocr_tables = extract_tables_with_ocr(pdf_path)
+        tables.extend(ocr_tables)
 
     # --- CLEANING PHASE ---
     # 1) clean text (remove disclaimers, keep Subject)

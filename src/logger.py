@@ -1,5 +1,6 @@
 import logging
 import sys
+import warnings
 from pathlib import Path
 from datetime import datetime
 
@@ -7,6 +8,10 @@ def setup_logging(log_dir: str = "logs", log_level: int = logging.INFO):
     """
     Sets up logging to console and file.
     """
+    # Suppress warnings FIRST before any logging setup
+    warnings.filterwarnings("ignore", message=".*is image-based, camelot only works on text-based pages.*")
+    warnings.filterwarnings("ignore", category=UserWarning, module="camelot")
+    
     # Create logs directory if it doesn't exist
     log_path = Path(log_dir)
     log_path.mkdir(parents=True, exist_ok=True)
@@ -34,5 +39,9 @@ def setup_logging(log_dir: str = "logs", log_level: int = logging.INFO):
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
+
+    # Suppress pdfminer warnings
+    logging.getLogger("pdfminer").setLevel(logging.ERROR)
+    logging.getLogger("pdfminer.pdfinterp").setLevel(logging.ERROR)
 
     logging.info(f"Logging initialized. Log file: {log_file}")
