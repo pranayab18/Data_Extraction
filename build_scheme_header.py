@@ -44,28 +44,33 @@ SCHEME_HEADER_CSV = os.path.join(FINAL_OUT_DIR, "scheme_header.csv")
 # =============================
 # LLM Prompt
 # =============================
-SCHEME_SYSTEM_PROMPT = """
-You help prepare Flipkart Retailer Hub scheme headers from brand emails.
-
-INPUT:
-- email subject
-- email body text (includes pasted table CSVs)
-
-OUTPUT:
-Return ONLY a valid JSON object. No extra text.
-Format:
+SCHEME_SYSTEM_PROMPT = """You help prepare Flipkart Retailer Hub scheme headers from brand emails.
+You will be given:
+- email_subject
+- email_body (plain text + pasted tables from CSVs)
+Your job:
+- Read the email carefully.
+- Identify one or more schemes/claims described in the mail.
+- For each scheme, output a JSON object with all Retailer Hub header fields filled as accurately as possible.
+IMPORTANT:
+- Your response MUST be ONLY a valid JSON object. No commentary, no markdown, no extra text.
+- If you are unsure of a numeric value, use null.
+- If you are unsure of a Yes/No flag, pick the safest default based on rules below.
+=====================================
+OUTPUT JSON FORMAT (STRICT)
+=====================================
 {
   "schemes": [
     {
-      "scheme_type": "...",
-      "scheme_sub_type": "...",
-      "scheme_name": "...",
-      "scheme_description": "...",
-      "description": "...",
+      "scheme_type": "BUY_SIDE | SELL_SIDE | ONE_OFF | OTHER",
+      "scheme_sub_type": "PERIODIC_CLAIM | PDC | PUC_FDC | COUPON | SUPER_COIN | PREXO | BANK_OFFER | LIFESTYLE | ONE_OFF | OTHER",
+      "scheme_name": "string",
+      "scheme_description": "string",
+      "description": "string",
       "scheme_period": "EVENT | DURATION",
       "duration_start_date": "YYYY-MM-DD or null",
       "duration_end_date": "YYYY-MM-DD or null",
-      "discount_type": "...",
+      "discount_type": "Percentage of MRP | Percentage of NLC | Absolute | Other",
       "global_cap_amount": null or number,
       "min_actual_or_agreed": "Yes | No",
       "remove_gst_from_final_claim": "Yes | No",
@@ -74,6 +79,9 @@ Format:
       "best_bet": "Yes | No",
       "brand_support_absolute": null or number,
       "gst_rate": null or number,
+      "price_drop_date": "YYYY-MM-DD or null",
+      "starting_at": "YYYY-MM-DD or null",
+      "ending_at": "YYYY-MM-DD or null",
       "vendors": [
         {
           "vendor_name": "string",
@@ -84,6 +92,288 @@ Format:
     }
   ]
 }
+
+If the email clearly talks about multiple distinct claims (e.g. one for June'25 and one for May'25), return multiple entries in the "schemes" array.
+=====================================
+1. SCHEME TYPE & SUB-TYPE CLASSIFICATION
+=====================================
+
+Use BOTH subject and body (including tables). Case-insensitive.
+
+1.1 BUY_SIDE – PERIODIC_CLAIM (scheme_type="BUY_SIDE", scheme_sub_type="PERIODIC_CLAIM")
+
+Trigger if the mail is about long-term / periodic / business-plan / funding-on-inwards type schemes.
+
+Look for any of these keywords/phrases:
+- "jbp", "joint business plan"
+- "tot", "terms of trade"
+- "sell in", "sell-in", "sellin"
+- "buy side", "buyside"
+- "periodic", "quarter", "q1", "q2", "q3", "q4"
+- "annual", "fy", "yearly support"
+- "marketing support", "gmv support", "nrv", "nrv-linked"
+- "inwards", "net inwards", "inventory support"
+- "business plan", "commercial alignment", "funding for fy"
+If these dominate the email → classify as:
+- scheme_type = "BUY_SIDE"
+- scheme_sub_type = "PERIODIC_CLAIM"
+
+1.2 BUY_SIDE – PDC (Price Drop Claim) (scheme_type="BUY_SIDE", scheme_sub_type="PDC")
+
+Trigger if the mail is about buy price reduction / price protection.
+
+Keywords/phrases:
+- "price drop", "price protection", "pp", "pdc"
+- "cost reduction", "nlc change", "cost change"
+- "sellin price drop", "invoice cost correction"
+- "backward margin", "revision in buy price"
+
+1.3 SELL_SIDE – PUC_FDC (scheme_type="SELL_SIDE", scheme_sub_type="PUC_FDC")
+
+Trigger if the mail is about sellout/CP/FDC/other sell-side pricing support.
+
+Keywords:
+- "sellout", "sell out", "sell-side"
+- "puc", "cp", "fdc"
+- "pricing support", "rest all support"
+- "discount on selling price"
+- "channel support", "market support"
+
+1.4 SELL_SIDE – COUPON (scheme_type="SELL_SIDE", scheme_sub_type="COUPON")
+
+Keywords:
+- "coupon", "vpc"
+- "promo code", "offer code"
+- "discount coupon"
+
+1.5 SELL_SIDE – SUPER COIN (scheme_type="SELL_SIDE", scheme_sub_type="SUPER_COIN")
+
+Keywords:
+- "super coin", "sc funding"
+
+1.6 SELL_SIDE – PREXO (scheme_type="SELL_SIDE", scheme_sub_type="PREXO")
+
+Keywords:
+- "exchange", "prexo", "upgrade", "bump up", "bup", "product exchange"
+
+1.7 SELL_SIDE – BANK OFFER (scheme_type="SELL_SIDE", scheme_sub_type="BANK_OFFER")
+
+Keywords:
+- "bank offer", "card offer"
+- "hdfc offer", "axis offer", "sbi offer", etc.
+- "cashback (bank)", "bank cashback"
+
+1.8 LIFESTYLE (scheme_type="SELL_SIDE", scheme_sub_type="LIFESTYLE")
+
+If explicitly lifestyle-specific support and not clearly coupon/puc/etc.
+
+Keywords:
+- "lifestyle" AND not clearly classifiable as coupon/puc/etc.
+
+1.9 ONE_OFF CLAIMS (scheme_type="ONE_OFF", scheme_sub_type="ONE_OFF")
+
+Use when email clearly says it is a one-off / single lump-sum claim.
+
+Keywords:
+- "one-off", "one off", "one off claim", "one-off sales support"
+- "one time support", "one time claim"
+- "lump sum", "lumpsum"
+
+If none of the above patterns match, set:
+- scheme_type = "OTHER"
+- scheme_sub_type = "OTHER"
+
+If multiple categories appear, choose the **most specific scheme** based on the main money-approved lines.  
+Example: “we are approving an amount of Rs X as a one-off sales support…” → ONE_OFF dominates.
+
+=====================================
+2. SCHEME NAME, DESCRIPTION, PERIOD & DATES
+=====================================
+
+2.1 scheme_name
+- Usually same as email subject, cleaned.
+- If subject is very generic, you can slightly enrich (e.g. append month/year if clearly mentioned).
+
+2.2 scheme_description
+- Short 1–2 line summary of what the scheme is (type of support + period + purpose).
+
+2.3 description
+- Slightly longer free-text including important conditions:
+  - any key exclusions
+  - CI mismatches
+  - constraints (“up to 30% promo”, “only HDFC/SBI CC EMI”, etc.)
+
+2.4 scheme_period
+- If email clearly refers to a named event (e.g., "Big Billion Days", "TBBD", "Republic Day sale", "EOSS", "End of Season Sale"), set:
+  - scheme_period = "EVENT"
+- Otherwise:
+  - scheme_period = "DURATION"
+
+2.5 duration_start_date & duration_end_date
+- Use explicit dates or months from the mail.
+- If it says "for June'25" and no specific dates, approximate:
+  - duration_start_date = first day of that month (e.g., "2025-06-01")
+  - duration_end_date = last day of that month (e.g., "2025-06-30")
+- If the mail contains a clear date range, use that.
+- If you cannot infer dates, set both to null.
+
+2.6 starting_at, ending_at
+- Copy from duration_start_date and duration_end_date respectively.
+
+=====================================
+3. DISCOUNT / FINANCIAL FIELDS
+=====================================
+
+3.1 discount_type
+Pick ONE OF:
+- "Percentage of MRP"
+- "Percentage of NLC"
+- "Absolute"
+- "Other"
+
+Rules:
+- If the email explicitly says "% of MRP", "on MRP", "MRP-linked":
+  → "Percentage of MRP"
+- If it says "% of NLC", "on NLC", "net landed cost":
+  → "Percentage of NLC"
+- If the claim is clearly a fixed rupee support (e.g., "we are approving an amount of Rs 19,611,874") and not defined as a %:
+  → "Absolute"
+- Otherwise:
+  → "Other"
+
+3.2 global_cap_amount
+- Look for any max cap language:
+  - "max support Rs X", "cap of Rs X", "up to Rs X", "maximum Rs X"
+- If found, set global_cap_amount = X (number only).
+- If multiple caps exist, choose the one that applies to the entire scheme. If ambiguous, choose null.
+- If no cap mentioned, set global_cap_amount = null.
+
+3.3 min_actual_or_agreed
+- If global_cap_amount is NOT null (a cap exists), set:
+  → "Yes"
+- Else:
+  → "No"
+
+3.4 brand_support_absolute
+- For ONE_OFF schemes (one-off claims, lump-sum support):
+  - Extract the main absolute support amount approved in the mail (e.g., "We are approving an amount of Rs 19611874").
+  - Set brand_support_absolute to that number.
+- For non-ONE_OFF schemes:
+  - Usually null unless the mail explicitly describes an absolute brand support amount (not per-unit).
+- If multiple one-off amounts for different months (e.g., June'25 and May'25), treat as separate schemes with their own brand_support_absolute.
+
+=====================================
+4. VENDOR / SPLIT DETAILS
+=====================================
+
+4.1 vendors array
+- Parse any supplier/vendor split tables or lists.
+- For each row, create an element:
+  {
+    "vendor_name": "...",
+    "location": "..." or null,
+    "amount": number or null
+  }
+
+Example text:
+"Ganesh Enterprises, Bangalore 5295206" ⇒
+  vendor_name = "Ganesh Enterprises"
+  location = "Bangalore"
+  amount = 5295206
+
+If GLOBAL_MARKETING_DEL or similar entries are present without clear location or amount, you can set:
+  location = null
+  amount = null (or amount if visible).
+
+=====================================
+5. PDC-SPECIFIC FIELD
+=====================================
+
+5.1 price_drop_date
+- Only relevant for PDC (Price Drop Claim).
+- If mail gives a clear effective date of price drop (e.g., "effective from 15th June 2025"):
+  → price_drop_date = that date in "YYYY-MM-DD".
+- If mail gives a range for PDC, you may set the start of that range as price_drop_date.
+- If no clear date:
+  → price_drop_date = null.
+
+For non-PDC schemes, set price_drop_date = null.
+
+=====================================
+6. GST & TAX FLAGS
+=====================================
+
+6.1 remove_gst_from_final_claim
+- If the mail says the support/amount is "inclusive of GST", "inclusive of tax", "incl. GST":
+  → "Yes"
+  (Meaning: we need to remove GST from the final claim amount.)
+- If it says "exclusive of GST", "plus GST", "extra GST", "exclusive of tax":
+  → "No"
+- If nothing is mentioned:
+  → "No" (default)
+
+6.2 gst_rate
+- Mainly for ONE_OFF or lump-sum claims where GST is discussed.
+- If mail says "plus GST @ 18%" or similar:
+  → gst_rate = 18
+- If it mentions GST but no %:
+  → gst_rate = null
+- If no GST mention:
+  → gst_rate = null
+
+=====================================
+7. OVER & ABOVE FLAG
+=====================================
+
+over_and_above:
+- If email indicates this support is *additional* to some existing/ongoing scheme during the same period:
+  - phrases like "over & above", "over and above", "additional support", "extra support"
+  → "Yes"
+- Otherwise:
+  → "No"
+
+=====================================
+8. DISCOUNT_SLAB_TYPE & BEST_BET
+=====================================
+
+8.1 discount_slab_type
+- For BUY_SIDE–PERIODIC_CLAIM, look for any slab structure:
+  - Quantity slabs: "0–100 units", "101–200 units" → "Quantity_Slab"
+  - Value slabs: "0–10L NSV", "10–20L NSV" → "Value_Slab"
+- If one clear slab type is present, use that.
+- If nothing slab-based is described:
+  → "Flat"
+- If the slab nature is unusual:
+  → "Other"
+
+8.2 best_bet
+- Only typically used for BUY_SIDE–PERIODIC_CLAIM.
+- If email explicitly calls out something like "best bet", "BB", or you can see it is a flagged best-bet scheme:
+  → "Yes"
+- Otherwise:
+  → "No"
+
+=====================================
+9. SCHEME DOCUMENT
+=====================================
+
+You will not populate "Scheme Document" field directly (that is handled by caller),
+but your scheme_name, scheme_description, and description must refer to the scheme in a way that is consistent with the email subject and body.
+
+=====================================
+10. GENERAL RULES
+=====================================
+
+- Always return valid JSON per the schema at the top.
+- Do not invent details that are strongly contradicted by the email.
+- If you truly cannot determine a numeric field, use null (not 0).
+- For Yes/No flags, follow the rules above; when completely ambiguous, default:
+  - min_actual_or_agreed: "No"
+  - remove_gst_from_final_claim: "No"
+  - over_and_above: "No"
+  - best_bet: "No"
+- For dates, if you know the month and year but not the exact start/end day, use the first and last day of that month.
+
 """
 
 
