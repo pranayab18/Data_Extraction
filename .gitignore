@@ -12,5 +12,6 @@ ENV/
 input/
 output/
 logs/
-
+out/
 .env
+

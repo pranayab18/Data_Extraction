@@ -2,12 +2,15 @@
 build_scheme_header_from_extraction.py
 
 Reads extracted text+tables from output/<pdf_id>/<timestamp>/,
-creates a combined mail_body, calls LLM to extract all Retailer Hub
-scheme header fields, and outputs scheme_header.csv.
+creates a combined mail_body, calls LLM (via OpenRouter) to extract all
+Retailer Hub scheme header fields, and outputs scheme_header.csv.
 
 Usage:
-1. pip install openai python-dotenv pandas
-2. Create .env file with: OPENAI_API_KEY=your_key_here
+1. pip install python-dotenv pandas requests
+2. Create .env file with:
+       OPENROUTER_API_KEY=your_openrouter_key_here
+       OPENROUTER_SITE_URL=https://localhost        # optional
+       OPENROUTER_APP_NAME=RetailerHub-Scheme-Extractor  # optional
 3. Run: python build_scheme_header_from_extraction.py
 """
 
@@ -17,19 +20,25 @@ import hashlib
 from typing import Dict, Any, List
 
 import pandas as pd
+import requests
 from dotenv import load_dotenv
-from openai import OpenAI
 
 # =============================
 # Load .env
 # =============================
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY missing in .env file")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+if not OPENROUTER_API_KEY:
+    raise RuntimeError("OPENROUTER_API_KEY missing in .env file")
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "https://localhost")
+OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "RetailerHub-Scheme-Extractor")
+
+# choose any OpenRouter-supported chat model you like
+OPENROUTER_MODEL = "qwen/qwen3-next-80b-a3b-instruct"
+
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # =============================
 # Folder Configuration
@@ -381,7 +390,7 @@ but your scheme_name, scheme_description, and description must refer to the sche
 # Step 1: Collect Emails from output/
 # =============================
 def load_emails_from_output(root_dir: str) -> pd.DataFrame:
-    email_records = []
+    email_records: List[Dict[str, Any]] = []
 
     for dirpath, _, filenames in os.walk(root_dir):
         full_txt_files = [f for f in filenames if f.endswith("_full_text.txt")]
@@ -398,6 +407,7 @@ def load_emails_from_output(root_dir: str) -> pd.DataFrame:
             # extract subject
             subject = None
             for line in txt_content.splitlines():
+                line = line.strip()
                 if "Mail - " in line:
                     subject = line.split("Mail - ", 1)[-1].strip()
                     break
@@ -419,19 +429,19 @@ def load_emails_from_output(root_dir: str) -> pd.DataFrame:
                 try:
                     df = pd.read_csv(csv_path)
                     tables_text += f"\n\nTABLE FROM {csv_name}\n" + df.to_csv(index=False)
-                except:
-                    pass
+                except Exception as e:
+                    print(f"[WARN] Failed reading table {csv_path}: {e}")
 
             # read summary.json if exists
             summary_path = os.path.join(dirpath, base + "_summary.json")
             summary_text = ""
             if os.path.exists(summary_path):
                 try:
-                    with open(summary_path, "r") as sf:
+                    with open(summary_path, "r", encoding="utf-8") as sf:
                         summary_data = json.load(sf)
                     summary_text = "\n\nSUMMARY_JSON:\n" + json.dumps(summary_data, indent=2)
-                except:
-                    pass
+                except Exception as e:
+                    print(f"[WARN] Failed reading summary {summary_path}: {e}")
 
             full_body = txt_content + tables_text + summary_text
             source_file = base + ".pdf"
@@ -446,29 +456,48 @@ def load_emails_from_output(root_dir: str) -> pd.DataFrame:
 
 
 # =============================
-# Step 2: LLM call
+# Step 2: LLM call via OpenRouter
 # =============================
 def call_llm(email_subject: str, email_body: str) -> Dict[str, Any]:
     payload = {
-        "mail_subject": email_subject,
-        "mail_body": email_body[:12000]
+        "model": OPENROUTER_MODEL,
+        "messages": [
+            {"role": "system", "content": SCHEME_SYSTEM_PROMPT},
+            {"role": "user", "content": json.dumps({
+                "mail_subject": email_subject,
+                "mail_body": email_body[:12000]
+            })}
+        ]
     }
 
-    resp = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": SCHEME_SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(payload)}
-        ],
-        response_format={"type": "json_object"}
-    )
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": OPENROUTER_SITE_URL,
+        "X-Title": OPENROUTER_APP_NAME,
+    }
 
     try:
-        data = json.loads(resp.choices[0].message.content)
-    except:
-        data = {"schemes": []}
+        resp = requests.post(
+            url=OPENROUTER_URL,
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=120,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"[ERROR] OpenRouter request failed: {e}")
+        return {"schemes": []}
 
-    if "schemes" not in data:
+    try:
+        resp_json = resp.json()
+        content = resp_json["choices"][0]["message"]["content"]
+        data = json.loads(content)
+    except Exception as e:
+        print(f"[ERROR] Failed to parse LLM JSON content: {e}")
+        return {"schemes": []}
+
+    if "schemes" not in data or not isinstance(data["schemes"], list):
         data["schemes"] = []
 
     return data
@@ -478,7 +507,7 @@ def call_llm(email_subject: str, email_body: str) -> Dict[str, Any]:
 # Step 3: Build scheme_header DF
 # =============================
 def build_scheme_header(result: Dict[str, Any], source_file: str) -> pd.DataFrame:
-    rows = []
+    rows: List[Dict[str, Any]] = []
 
     for scheme in result["schemes"]:
         raw_id = f"{scheme.get('scheme_name')}|{scheme.get('duration_start_date')}|{scheme.get('duration_end_date')}"
@@ -504,7 +533,7 @@ def build_scheme_header(result: Dict[str, Any], source_file: str) -> pd.DataFram
             "BRAND_SUPPORT_ABSOLUTE": scheme.get("brand_support_absolute"),
             "GST Rate": scheme.get("gst_rate"),
             "Scheme Document": source_file,
-            "FSN File/Config File": None
+            "FSN File/Config File": None,
         })
 
     return pd.DataFrame(rows)
@@ -521,7 +550,7 @@ def main():
         print("⚠ No extracted emails found.")
         return
 
-    all_rows = []
+    all_rows: List[pd.DataFrame] = []
 
     for idx, row in emails_df.iterrows():
         print(f"\n➡ Processing email {idx+1}/{len(emails_df)}: {row['mail_subject'][:80]}…")
@@ -530,6 +559,8 @@ def main():
 
         if not df.empty:
             all_rows.append(df)
+        else:
+            print("  [WARN] No schemes extracted for this email.")
 
     if not all_rows:
         print("\n⚠ No scheme headers extracted.")
