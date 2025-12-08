@@ -107,7 +107,7 @@ JSON Output:"""
 # ============================================================================
 # INPUT/OUTPUT PATHS
 # ============================================================================
-INPUT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "Extracted_Files")
+INPUT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "Redacted_and_PII_Files")
 OUTPUT_CSV = os.path.join(os.path.dirname(__file__), "evaluation_results.csv")
 
 # ============================================================================
