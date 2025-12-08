@@ -104,8 +104,8 @@ def save_json_output(output_dir: str, model: str, data: List[Dict[str, Any]]) ->
     """
     Save the extracted data for a model to a JSON file.
     """
-    # Sanitize model name for filename
-    safe_model_name = model.replace('/', '_').replace('-', '_')
+    # Sanitize model name for filename (handle special chars like :)
+    safe_model_name = model.replace('/', '_').replace('-', '_').replace(':', '_')
     output_file = os.path.join(output_dir, f"{safe_model_name}.json")
     
     try:
