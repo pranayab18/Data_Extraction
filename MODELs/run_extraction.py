@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import List, Dict, Any
 from openrouter_client import OpenRouterClient
 import experiment_config as config
+import validators
 
 def clean_extracted_value(value: str, field_name: str) -> Any:
     """
@@ -184,15 +185,25 @@ def run_extraction(
                     
                     try:
                         extracted_data = json.loads(raw_content)
-                        print(f" [OK] Done (Received JSON)")
+                        print(f" [OK] Done (Received JSON)", end="")
                     except json.JSONDecodeError:
                         print(f" [FAIL] Invalid JSON received")
                         extracted_data = {}
                         # Could add fallback parsing here in future
                         
+                    # Apply guardrails validation
+                    validated_data, validation_errors = validators.validate_all_fields(extracted_data)
+                    
+                    if validation_errors:
+                        print(f" [WARN] {len(validation_errors)} validation issues")
+                        for err in validation_errors:
+                            print(f"         - {err}")
+                    else:
+                        print(" ✓")
+                        
                     # Process and assign fields
                     for field in config.FIELDS_TO_EXTRACT:
-                        val = extracted_data.get(field)
+                        val = validated_data.get(field)
                         # clean values using existing logic (normalize nulls, etc)
                         if val:
                              val = clean_extracted_value(str(val), field)
