@@ -9,8 +9,12 @@ def get_models():
     if response.status_code == 200:
         models = response.json()['data']
         claude_models = [m['id'] for m in models if 'claude' in m['id'].lower()]
+        gemini_models = [m['id'] for m in models if 'gemini' in m['id'].lower()]
         print("Available Claude Models:")
         for m in claude_models:
+            print(m)
+        print("\nAvailable Gemini Models:")
+        for m in gemini_models:
             print(m)
     else:
         print(f"Error: {response.status_code} - {response.text}")

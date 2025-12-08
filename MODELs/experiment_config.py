@@ -9,7 +9,7 @@ import os
 # OpenRouter model identifiers
 # OpenRouter model identifiers
 MODELS = [
-    "google/gemini-1.5-flash",
+    "google/gemini-2.5-flash",
     "openai/gpt-4o-mini",
     "anthropic/claude-3.5-sonnet",
 ]
