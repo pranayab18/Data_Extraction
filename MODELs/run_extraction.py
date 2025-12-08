@@ -253,8 +253,9 @@ def main():
     print("DATA EXTRACTION SCRIPT (JSON OUTPUT)")
     print("="*80 + "\n")
     
-    # Load documents
-    documents = load_documents(config.INPUT_FOLDER)
+    # Load documents from Redacted_and_PII_Files
+    input_folder = os.path.join(os.path.dirname(__file__), "..", "Redacted_and_PII_Files")
+    documents = load_documents(input_folder)
     if not documents:
         print("[ERROR] No documents found. Exiting.")
         return
