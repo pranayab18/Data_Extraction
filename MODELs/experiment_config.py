@@ -49,38 +49,27 @@ def get_consolidated_extraction_prompt(document_text: str) -> str:
     """
     fields_desc = ""
     prompts = {
-        "scheme_name": "Extract the scheme name as mentioned by the brand, usually from the email subject line.",
-        "scheme_description": "Capture any important conditions or notes mentioned in the brand email related to the scheme.",
-        "scheme_period": "Identify whether the scheme is a \"Duration\" or an \"Event\". Note: Out of ~7000 claim IDs per 3 months, fewer than 10 are event-based.",
-        "duration": "Extract the scheme validity period in the format \"Start Date to End Date\".",
-        "discount_type": "Identify the type of discount mentioned in the email: Percentage of NLC, Percentage of MRP, Absolute value",
-        "max_cap": "Extract any maximum support amount or cap specified by the brand.",
-        "vendor_name": "Identify the vendor name referenced in the mail, from vendor site details if applicable.",
-        "price_drop_date": "For PDC claims, extract the exact price drop date mentioned in the email.",
-        "start_date": "Extract the scheme start date.",
-        "end_date": "Extract the scheme end date.",
-        "fsn_file_config_file": "Prepare and attach an FSN file based on the FSNs/models provided in the email. Return \"Yes\" if FSN data/file is present/needed, otherwise \"No\".",
-        "min_actual_discount_or_agreed_claim": "If any commercial cap or limit is mentioned by the brand, select \"Yes\". Otherwise, select \"No\".",
-        "remove_gst": "If the brand mentions prices inclusive of GST -> select \"Yes\". If prices are exclusive of GST -> select \"No\".",
-        "over_and_above": "Select only if the support is additional for the same claim period and must override duplicity checks. Return \"Yes\" or \"No\".",
-        "scheme_document": "Attach the brand-provided document (letter, PDF, email attachment). Return \"Yes\" if present.",
-        "discount_slab_type": "For Buyside-Periodic claims, capture slab details exactly as mentioned in the brand email.",
-        "best_bet": "For Buyside-Periodic claims, identify and extract the BEST_BET information as per the mail.",
-        "brand_support_absolute": "For OFC claims only - extract the absolute brand support amount from the email.",
-        "gst_rate": "For One-Off claims, extract the GST rate mentioned in the mail and enter in percentage.",
-        "scheme_type": """Determine the 'Scheme Type' from the document based on these rules:
-To determine the Scheme Type, review the email content for specific business keywords and context.
-Classify the scheme as BUY_SIDE when the message includes terms such as Buyside, Sellin, Sellin Incentive, Price Protection, PP, Price Drop, or any One-Off support related to the buy side.
-Classify it as SELL_SIDE when the email refers to Coupon, VPC, PUC, Pricing Support, Sellout Support, CP, Product Exchange, Prexo, Prexo Bumpup, Upgrade, Super Coin, Lifestyle support, or Bank Offers.
-If the communication indicates a one-time or standalone support that does not fall clearly under periodic buy-side or sell-side structures, categorize it under ONE_OFF.
-The Scheme Type should always reflect the overall commercial nature of the support described in the brand’s mail.
-Return ONLY one of: BUY_SIDE, SELL_SIDE, ONE_OFF.""",
-        "sub_type": """Determine the 'Sub Type' from the document based on these rules:
-Once the Scheme Type is decided, identify the Scheme Sub Type using more specific keywords from the email.
-For BUY_SIDE, classify the sub type as PERIODIC_CLAIM when the mail refers to Buyside, Sellin, or Sellin Incentive; choose PDC when Price Protection, PP, or Price Drop is mentioned; and use ONE_OFF when the support is explicitly described as a one-off for either buyside or sell side.
-For SELL_SIDE, assign COUPON when the email contains Coupon or VPC references; choose PUC_FDC when CP, Pricing Support, or Sellout Support is mentioned, or when the support is generic without a clear category; use PREXO for Exchange, Prexo, Bumpup, Upgrade, or BUP-related schemes; select SUPER_COIN for super coin-based support; assign Bank Offers for any bank-led offer schemes; and select LIFESTYLE for lifestyle-specific support, except in cases where brands provide CN-PU.
-The Sub Type should accurately reflect the closest matching intent or terminology in the email.
-Return one of: PERIODIC_CLAIM, PDC, ONE_OFF, COUPON, PUC_FDC, PREXO, SUPER_COIN, BANK_OFFER, LIFESTYLE."""
+        "scheme_name": "Extract scheme name from subject/header",
+        "scheme_description": "Key conditions or notes about the scheme",
+        "scheme_period": "Duration or Event (usually Duration)",
+        "duration": "Validity period: Start to End date",
+        "discount_type": "% of NLC, % of MRP, or Absolute value",
+        "max_cap": "Maximum support amount/cap",
+        "vendor_name": "Vendor name from email",
+        "price_drop_date": "PDC price drop date if mentioned",
+        "start_date": "Scheme start date",
+        "end_date": "Scheme end date",
+        "fsn_file_config_file": "Yes if FSN data needed, else No",
+        "min_actual_discount_or_agreed_claim": "Yes if commercial cap mentioned, else No",
+        "remove_gst": "Yes if prices inclusive of GST, No if exclusive",
+        "over_and_above": "Yes if additional support for same period, else No",
+        "scheme_document": "Yes if document attached",
+        "discount_slab_type": "Slab details for Buyside-Periodic",
+        "best_bet": "BEST_BET info for Buyside-Periodic",
+        "brand_support_absolute": "Absolute support amount for OFC only",
+        "gst_rate": "GST % for One-Off claims",
+        "scheme_type": "BUY_SIDE (Sellin/PP/Price Drop) | SELL_SIDE (Coupon/VPC/Prexo/Bank) | ONE_OFF (standalone)",
+        "sub_type": "PERIODIC_CLAIM | PDC | ONE_OFF | COUPON | PUC_FDC | PREXO | SUPER_COIN | BANK_OFFER | LIFESTYLE"
     }
 
     for key in FIELDS_TO_EXTRACT:

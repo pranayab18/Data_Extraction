@@ -4,6 +4,7 @@ Retrieves fields from documents using selected models and saves directly to JSON
 """
 import os
 import json
+import re
 import time
 from pathlib import Path
 from datetime import datetime
@@ -11,6 +12,29 @@ from typing import List, Dict, Any
 from openrouter_client import OpenRouterClient
 import experiment_config as config
 import validators
+
+def preprocess_document(text: str) -> str:
+    """
+    Preprocess document to reduce token count.
+    Removes extra whitespace, email patterns, and cleans formatting.
+    """
+    # Remove multiple spaces/newlines
+    text = re.sub(r'\s+', ' ', text)
+    
+    # Remove email disclaimers
+    text = re.sub(r'This email.*?confidential.*?\.|Disclaimer:.*?\.|CONFIDENTIALITY.*?\.|This message.*?intended.*?\.', '', text, flags=re.IGNORECASE | re.DOTALL)
+    
+    # Remove URLs
+    text = re.sub(r'http[s]?://\S+', '', text)
+    
+    # Remove email addresses (keep vendor domain info if needed)
+    text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '', text)
+    
+    # Remove excessive punctuation
+    text = re.sub(r'([!?,.]){2,}', r'\1', text)
+    
+    # Trim
+    return text.strip()
 
 def clean_extracted_value(value: str, field_name: str) -> Any:
     """
@@ -89,12 +113,14 @@ def load_documents(input_folder: str) -> List[Dict[str, str]]:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
+                # Preprocess to reduce tokens
+                preprocessed = preprocess_document(content)
                 documents.append({
                     'filename': file_path.name,
                     'filepath': str(file_path),
-                    'content': content
+                    'content': preprocessed
                 })
-                print(f"Loaded: {file_path.name} ({len(content)} chars)")
+                print(f"Loaded: {file_path.name} ({len(content)} → {len(preprocessed)} chars)")
         except Exception as e:
             print(f"[ERROR] Error loading {file_path.name}: {e}")
     
