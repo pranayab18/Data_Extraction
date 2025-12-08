@@ -7,13 +7,11 @@ import os
 # MODEL CONFIGURATION
 # ============================================================================
 # OpenRouter model identifiers
+# OpenRouter model identifiers
 MODELS = [
-    "openai/gpt-4-turbo",
-    "openai/gpt-3.5-turbo",
-
+    "google/gemini-flash-1.5",
+    "openai/gpt-4o-mini",
     "anthropic/claude-3.5-sonnet",
-    "google/gemini-2.5-pro",
-    "google/gemini-2.5-flash",
 ]
 
 # ============================================================================
