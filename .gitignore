@@ -14,3 +14,10 @@ MODELs/model_outputs/
 
 # Local Config
 MODELs/.env
+
+# Project specific (from remote)
+input/
+output/
+logs/
+out/
+extracted_output/
