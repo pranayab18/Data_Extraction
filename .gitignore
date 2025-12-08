@@ -1,16 +1,16 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual Environment
-.venv/
-venv/
-ENV/
-
-# Project specific
-input/
-output/
-logs/
-
+# Environment
 .env
+.idea/
+__pycache__/
+
+# Data Folders (Large/Sensitive)
+Input_Folder/
+Redacted_and_PII_Files/
+Extracted_Files/
+MODELs/model_outputs/
+
+# Python
+*.pyc
+
+# Local Config
+MODELs/.env

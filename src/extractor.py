@@ -101,6 +101,8 @@ EMAIL_HEADER_PREFIXES = (
 )
 
 SEPARATOR_LINE_RE = re.compile(r"^\s*-{5,}\s*$")
+FORWARDED_MSG_RE = re.compile(r"Begin forwarded message:?", re.IGNORECASE)
+
 
 
 def looks_like_disclaimer(text: str) -> bool:
@@ -147,6 +149,8 @@ def clean_email_text(text: str) -> str:
 
     # 2) Line-level filtering
     result_lines = []
+    subject_found = False
+    
     for line in cleaned.splitlines():
         stripped = line.strip()
 
@@ -159,12 +163,20 @@ def clean_email_text(text: str) -> str:
         if any(stripped.startswith(prefix) for prefix in EMAIL_HEADER_PREFIXES):
             continue
 
-        # IMPORTANT: we DO NOT drop "Subject:" lines because they may contain relevant info
-        # if stripped.startswith("Subject:"):
-        #     -> KEEP
+        # Handle Subject lines - keep only the first one
+        if stripped.lower().startswith("subject:"):
+            if subject_found:
+                continue
+            subject_found = True
+            result_lines.append(line)
+            continue
 
         # Drop separator lines
         if SEPARATOR_LINE_RE.match(stripped):
+            continue
+            
+        # Drop "Begin forwarded message" lines
+        if FORWARDED_MSG_RE.search(stripped):
             continue
 
         # Drop gmail noise like [Quoted text hidden], Gmail URLs, etc.
@@ -412,12 +424,12 @@ def extract_tables_with_ocr(pdf_path: str) -> list[pd.DataFrame]:
 #  OUTPUT DIRECTORY
 # ==============================
 
-def prepare_run_output_dir(pdf_path: str):
+def prepare_run_output_dir(pdf_path: str, output_dir: str = OUT_DIR):
     basename = Path(pdf_path).stem
     safe_base = safe_filename(basename)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    run_dir = Path(OUT_DIR) / safe_base / timestamp
+    run_dir = Path(output_dir) / safe_base / timestamp
     run_dir.mkdir(parents=True, exist_ok=True)
 
     return run_dir, safe_base, timestamp
@@ -465,10 +477,10 @@ def save_outputs(pdf_path: str, text: str, tables: list[pd.DataFrame],
 #  MAIN PER-FILE RUN
 # ==============================
 
-def run_for_pdf(pdf_path: str, ocr_if_empty: bool = True, try_camelot: bool = True):
+def run_for_pdf(pdf_path: str, output_dir: str = OUT_DIR, ocr_if_empty: bool = True, try_camelot: bool = True):
     logger.info(f"Extracting from: {pdf_path}")
 
-    run_dir, safe_base, timestamp = prepare_run_output_dir(pdf_path)
+    run_dir, safe_base, timestamp = prepare_run_output_dir(pdf_path, output_dir)
     logger.info(f"Output directory: {run_dir}")
 
     # --- DETECT IMAGE-BASED PAGES ---
