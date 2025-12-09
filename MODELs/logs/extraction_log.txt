@@ -1,0 +1,220 @@
+
+================================================================================
+[2025-12-09 11:43:24] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.000121
+Duration: 0.65s
+Status: API Error
+
+================================================================================
+[2025-12-09 11:43:24] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.002424
+Duration: 0.09s
+Status: API Error
+
+================================================================================
+[2025-12-09 11:43:24] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,567
+Output Tokens: 0
+Total Cost: $0.000385
+Duration: 0.06s
+Status: API Error
+
+================================================================================
+[2025-12-09 11:43:24] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,567
+Output Tokens: 0
+Total Cost: $0.007701
+Duration: 0.05s
+Status: API Error
+
+================================================================================
+[2025-12-09 11:48:08] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.000121
+Duration: 0.61s
+Status: API Error
+
+================================================================================
+[2025-12-09 11:48:08] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.002424
+Duration: 0.05s
+Status: API Error
+
+================================================================================
+[2025-12-09 11:48:08] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,567
+Output Tokens: 0
+Total Cost: $0.000385
+Duration: 0.04s
+Status: API Error
+
+================================================================================
+[2025-12-09 11:48:08] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,567
+Output Tokens: 0
+Total Cost: $0.007701
+Duration: 0.04s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:08:26] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.000121
+Duration: 0.59s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:08:26] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.002424
+Duration: 0.06s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:08:26] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,567
+Output Tokens: 0
+Total Cost: $0.000385
+Duration: 0.05s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:08:26] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,567
+Output Tokens: 0
+Total Cost: $0.007701
+Duration: 0.05s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:23:02] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.000121
+Duration: 0.59s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:23:02] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.002424
+Duration: 0.05s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:23:02] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.000121
+Duration: 0.04s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:23:02] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt
+Input Tokens: 808
+Output Tokens: 0
+Total Cost: $0.002424
+Duration: 0.03s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:23:02] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,567
+Output Tokens: 0
+Total Cost: $0.000385
+Duration: 0.07s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:23:02] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,567
+Output Tokens: 0
+Total Cost: $0.007701
+Duration: 0.05s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:23:02] Extraction Run
+================================================================================
+Model: openai/gpt-4o-mini
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,563
+Output Tokens: 0
+Total Cost: $0.000384
+Duration: 0.04s
+Status: API Error
+
+================================================================================
+[2025-12-09 12:23:02] Extraction Run
+================================================================================
+Model: anthropic/claude-3.5-sonnet
+Document: FKI-BS-PC-b362f0da86d1_full_text.txt
+Input Tokens: 2,563
+Output Tokens: 0
+Total Cost: $0.007689
+Duration: 0.05s
+Status: API Error

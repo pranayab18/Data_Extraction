@@ -365,8 +365,8 @@ def process_extracted_files(input_base_dir, output_base_dir, enable_pii_masking=
 
 if __name__ == "__main__":
     # Define paths
-    extracted_dir = r"c:\Users\Admin\Desktop\data\Extracted_Files"
-    redacted_dir = r"c:\Users\Admin\Desktop\data\Redacted_Files"
+    extracted_dir = r"c:\Users\Admin\Desktop\data\data_extraction\Extracted_files"
+    redacted_dir = r"c:\Users\Admin\Desktop\data\data_extraction\Redacted_and_PII_Files"
     
     print("=" * 60)
     print("EMAIL CONTENT REDACTION WITH PII MASKING")

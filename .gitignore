@@ -1,0 +1,13 @@
+# Data Directories (Input/Output)
+Input_Folder/
+Extracted_files/
+Redacted_Files/
+Redacted_and_PII_Files/
+MODELs/model_outputs/
+
+# Secrets
+.env
+**/__pycache__/
+*.pyc
+
+# Keep MODELs/logs/ but ignore if explicitly listed (it's not, so it will be kept)

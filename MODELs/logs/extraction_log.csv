@@ -1,0 +1,21 @@
+Timestamp,Model,Document,Input Tokens,Output Tokens,Total Cost,Duration (s),Status
+2025-12-09 11:43:24,openai/gpt-4o-mini,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.000121,0.65,API Error
+2025-12-09 11:43:24,anthropic/claude-3.5-sonnet,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.002424,0.09,API Error
+2025-12-09 11:43:24,openai/gpt-4o-mini,FKI-BS-PC-b362f0da86d1_full_text.txt,2567,0,$0.000385,0.06,API Error
+2025-12-09 11:43:24,anthropic/claude-3.5-sonnet,FKI-BS-PC-b362f0da86d1_full_text.txt,2567,0,$0.007701,0.05,API Error
+2025-12-09 11:48:08,openai/gpt-4o-mini,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.000121,0.61,API Error
+2025-12-09 11:48:08,anthropic/claude-3.5-sonnet,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.002424,0.05,API Error
+2025-12-09 11:48:08,openai/gpt-4o-mini,FKI-BS-PC-b362f0da86d1_full_text.txt,2567,0,$0.000385,0.04,API Error
+2025-12-09 11:48:08,anthropic/claude-3.5-sonnet,FKI-BS-PC-b362f0da86d1_full_text.txt,2567,0,$0.007701,0.04,API Error
+2025-12-09 12:08:26,openai/gpt-4o-mini,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.000121,0.59,API Error
+2025-12-09 12:08:26,anthropic/claude-3.5-sonnet,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.002424,0.06,API Error
+2025-12-09 12:08:26,openai/gpt-4o-mini,FKI-BS-PC-b362f0da86d1_full_text.txt,2567,0,$0.000385,0.05,API Error
+2025-12-09 12:08:26,anthropic/claude-3.5-sonnet,FKI-BS-PC-b362f0da86d1_full_text.txt,2567,0,$0.007701,0.05,API Error
+2025-12-09 12:23:02,openai/gpt-4o-mini,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.000121,0.59,API Error
+2025-12-09 12:23:02,anthropic/claude-3.5-sonnet,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.002424,0.05,API Error
+2025-12-09 12:23:02,openai/gpt-4o-mini,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.000121,0.04,API Error
+2025-12-09 12:23:02,anthropic/claude-3.5-sonnet,FKI-OFC-OFC-1c43a9f9b8ee_full_text.txt,808,0,$0.002424,0.03,API Error
+2025-12-09 12:23:02,openai/gpt-4o-mini,FKI-BS-PC-b362f0da86d1_full_text.txt,2567,0,$0.000385,0.07,API Error
+2025-12-09 12:23:02,anthropic/claude-3.5-sonnet,FKI-BS-PC-b362f0da86d1_full_text.txt,2567,0,$0.007701,0.05,API Error
+2025-12-09 12:23:02,openai/gpt-4o-mini,FKI-BS-PC-b362f0da86d1_full_text.txt,2563,0,$0.000384,0.04,API Error
+2025-12-09 12:23:02,anthropic/claude-3.5-sonnet,FKI-BS-PC-b362f0da86d1_full_text.txt,2563,0,$0.007689,0.05,API Error
