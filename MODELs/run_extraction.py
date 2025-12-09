@@ -20,6 +20,32 @@ MODEL_PRICING = {
     "anthropic/claude-3.5-sonnet": {"input": 3.00, "output": 15.00}
 }
 
+# Cost limit in dollars
+COST_LIMIT = 5.00
+
+def check_cost_limit(logs_dir: str) -> tuple:
+    """
+    Check total costs from log file against limit.
+    Returns: (total_cost, limit_exceeded, remaining)
+    """
+    log_file = os.path.join(logs_dir, "extraction_log.csv")
+    
+    if not os.path.exists(log_file):
+        return 0.0, False, COST_LIMIT
+    
+    total_cost = 0.0
+    with open(log_file, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Parse cost (remove $ sign)
+            cost_str = row['Total Cost'].replace('$', '')
+            total_cost += float(cost_str)
+    
+    remaining = COST_LIMIT - total_cost
+    limit_exceeded = total_cost >= COST_LIMIT
+    
+    return total_cost, limit_exceeded, remaining
+
 def log_extraction(log_file: str, timestamp: str, model: str, document: str, 
                    input_tokens: int, output_tokens: int, cost: float, 
                    duration: float, status: str):
@@ -320,6 +346,28 @@ def main():
     print("\n" + "="*80)
     print("DATA EXTRACTION SCRIPT (JSON OUTPUT)")
     print("="*80 + "\n")
+    
+    # Check cost limit
+    logs_dir = os.path.join(os.path.dirname(__file__), "logs")
+    total_cost, limit_exceeded, remaining = check_cost_limit(logs_dir)
+    
+    print(f"Cost Tracking:")
+    print(f"  Total Spent: ${total_cost:.6f}")
+    print(f"  Limit: ${COST_LIMIT:.2f}")
+    print(f"  Remaining: ${remaining:.6f}\n")
+    
+    if limit_exceeded:
+        print("\n" + "!"*80)
+        print(f"WARNING: COST LIMIT REACHED!")
+        print(f"You have reached or exceeded the ${COST_LIMIT:.2f} cost limit.")
+        print(f"Total costs so far: ${total_cost:.6f}")
+        print(f"Please review logs at: {logs_dir}")
+        print("!"*80 + "\n")
+        
+        response = input("Continue anyway? (yes/no): ")
+        if response.lower() not in ['yes', 'y']:
+            print("Extraction cancelled.")
+            return
     
     # Load documents from Redacted_and_PII_Files
     input_folder = os.path.join(os.path.dirname(__file__), "..", "Redacted_and_PII_Files")
