@@ -5,6 +5,7 @@ Retrieves fields from documents using selected models and saves directly to JSON
 import os
 import json
 import re
+import csv
 import time
 from pathlib import Path
 from datetime import datetime
@@ -12,6 +13,28 @@ from typing import List, Dict, Any
 from openrouter_client import OpenRouterClient
 import experiment_config as config
 import validators
+
+# Model pricing per 1M tokens (input/output)
+MODEL_PRICING = {
+    "openai/gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    "anthropic/claude-3.5-sonnet": {"input": 3.00, "output": 15.00}
+}
+
+def log_extraction(log_file: str, timestamp: str, model: str, document: str, 
+                   input_tokens: int, output_tokens: int, cost: float, 
+                   duration: float, status: str):
+    """
+    Log extraction details to CSV file.
+    """
+    file_exists = os.path.exists(log_file)
+    
+    with open(log_file, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['Timestamp', 'Model', 'Document', 'Input Tokens', 
+                           'Output Tokens', 'Total Cost', 'Duration (s)', 'Status'])
+        writer.writerow([timestamp, model, document, input_tokens, output_tokens, 
+                        f"${cost:.6f}", f"{duration:.2f}", status])
 
 def preprocess_document(text: str) -> str:
     """
@@ -190,6 +213,12 @@ def run_extraction(
             operation_count += 1
             print(f"[{operation_count}/{(len(documents)*len(models))}] Extracting all fields...", end="", flush=True)
 
+            # Track start time for logging
+            start_time = time.time()
+            input_tokens = 0
+            output_tokens = 0
+            status = "Error"
+
             try:
                 # Call API
                 response = client.create_completion(
@@ -201,8 +230,13 @@ def run_extraction(
                     response_format={"type": "json_object"} if "gpt" in model else None # Hint for GPT models
                 )
 
+                # Estimate token usage (rough approximation)
+                input_tokens = len(prompt) // 4
+                
                 if response['success']:
                     raw_content = response['response'].strip()
+                    output_tokens = len(raw_content) // 4
+                    
                     # Clean markdown code blocks if present
                     if raw_content.startswith("```json"):
                         raw_content = raw_content.replace("```json", "").replace("```", "")
@@ -212,10 +246,11 @@ def run_extraction(
                     try:
                         extracted_data = json.loads(raw_content)
                         print(f" [OK] Done (Received JSON)", end="")
+                        status = "Success"
                     except json.JSONDecodeError:
                         print(f" [FAIL] Invalid JSON received")
                         extracted_data = {}
-                        # Could add fallback parsing here in future
+                        status = "JSON Error"
                         
                     # Apply guardrails validation
                     validated_data, validation_errors = validators.validate_all_fields(extracted_data)
@@ -232,18 +267,33 @@ def run_extraction(
                         val = validated_data.get(field)
                         # clean values using existing logic (normalize nulls, etc)
                         if val:
-                             val = clean_extracted_value(str(val), field)
+                              val = clean_extracted_value(str(val), field)
                         doc_result["fields"][field] = val
                         
                 else:
                     print(f" [FAIL] Failed: {response.get('error')}")
+                    status = f"API Error"
                     for field in config.FIELDS_TO_EXTRACT:
                          doc_result["fields"][field] = f"ERROR: {response.get('error')}"
 
             except Exception as e:
                 print(f" [ERROR] Error: {e}")
+                status = f"Exception"
                 for field in config.FIELDS_TO_EXTRACT:
                      doc_result["fields"][field] = f"EXCEPTION: {str(e)}"
+            
+            # Calculate duration and cost
+            duration = time.time() - start_time
+            cost = 0.0
+            if model in MODEL_PRICING:
+                pricing = MODEL_PRICING[model]
+                cost = (input_tokens / 1_000_000) * pricing["input"] + (output_tokens / 1_000_000) * pricing["output"]
+            
+            # Log extraction
+            log_file = os.path.join(output_dir, "extraction_log.csv")
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_extraction(log_file, timestamp, model, document['filename'], 
+                          input_tokens, output_tokens, cost, duration, status)
             
             # Save progress after each document for this model (optional, but good for safety)
             save_json_output(output_dir, model, results_by_model[model])
