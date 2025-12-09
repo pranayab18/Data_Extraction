@@ -11,3 +11,4 @@ MODELs/model_outputs/
 *.pyc
 
 # Keep MODELs/logs/ but ignore if explicitly listed (it's not, so it will be kept)
+MODELs/reference_tools/
