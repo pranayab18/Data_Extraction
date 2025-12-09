@@ -289,11 +289,29 @@ def run_extraction(
                 pricing = MODEL_PRICING[model]
                 cost = (input_tokens / 1_000_000) * pricing["input"] + (output_tokens / 1_000_000) * pricing["output"]
             
-            # Log extraction
-            log_file = os.path.join(output_dir, "extraction_log.csv")
+            # Create logs directory
+            logs_dir = os.path.join(os.path.dirname(__file__), "logs")
+            os.makedirs(logs_dir, exist_ok=True)
+            
+            # Log to CSV
+            log_file = os.path.join(logs_dir, "extraction_log.csv")
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             log_extraction(log_file, timestamp, model, document['filename'], 
                           input_tokens, output_tokens, cost, duration, status)
+            
+            # Log to text file (detailed)
+            text_log = os.path.join(logs_dir, "extraction_log.txt")
+            with open(text_log, 'a', encoding='utf-8') as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"[{timestamp}] Extraction Run\n")
+                f.write(f"{'='*80}\n")
+                f.write(f"Model: {model}\n")
+                f.write(f"Document: {document['filename']}\n")
+                f.write(f"Input Tokens: {input_tokens:,}\n")
+                f.write(f"Output Tokens: {output_tokens:,}\n")
+                f.write(f"Total Cost: ${cost:.6f}\n")
+                f.write(f"Duration: {duration:.2f}s\n")
+                f.write(f"Status: {status}\n")
             
             # Save progress after each document for this model (optional, but good for safety)
             save_json_output(output_dir, model, results_by_model[model])
